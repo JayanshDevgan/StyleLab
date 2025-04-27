@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleLab - DEMO</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Style Suggestion Form</h1>
+        <form id="styleForm" class="mt-4">
+            <div class="form-group">
+                <label for="hairTexture">What is your primary hair texture?</label>
+                <select id="hairTexture" class="form-control" required>
+                    <option value="Wavy">Wavy</option>
+                    <option value="Straight">Straight</option>
+                    <option value="Curly">Curly</option>
+                    <option value="Coily">Coily</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="faceShape">How would you describe your face shape?</label>
+                <select id="faceShape" class="form-control" required>
+                    <option value="Square">Square</option>
+                    <option value="Round">Round</option>
+                    <option value="Oval">Oval</option>
+                    <option value="Heart">Heart</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="lifestyle">What is your typical lifestyle or profession?</label>
+                <select id="lifestyle" class="form-control" required>
+                    <option value="Professional/Business">Professional/Business</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Sporty">Sporty</option>
+                    <option value="Creative">Creative</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="beardMaintenance">Preferred level of beard maintenance:</label>
+                <select id="beardMaintenance" class="form-control" required>
+                    <option value="Short, neatly trimmed beard">Short, neatly trimmed beard</option>
+                    <option value="Clean-shaven">Clean-shaven</option>
+                    <option value="Long beard">Long beard</option>
+                    <option value="Medium beard">Medium beard</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="accessoriesStyle">Personal style when it comes to accessories:</label>
+                <select id="accessoriesStyle" class="form-control" required>
+                    <option value="Minimalist and classic">Minimalist and classic</option>
+                    <option value="Trendy and bold">Trendy and bold</option>
+                    <option value="Sporty">Sporty</option>
+                    <option value="Vintage">Vintage</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Get Suggestions</button>
+        </form>
+
+        <h2 class="mt-5">Suggestions:</h2>
+        <pre id="suggestions" class="border p-3"></pre>
+    </div>
+
+    <script>
+        document.getElementById('styleForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const hairTexture = document.getElementById('hairTexture').value;
+            const faceShape = document.getElementById('faceShape').value;
+            const lifestyle = document.getElementById('lifestyle').value;
+            const beardMaintenance = document.getElementById('beardMaintenance').value;
+            const accessoriesStyle = document.getElementById('accessoriesStyle').value;
+
+            const response = await fetch('http://localhost:6969/api/v1/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    hairTexture,
+                    faceShape,
+                    lifestyle,
+                    beardMaintenance,
+                    accessoriesStyle,
+                }),
+            });
+
+            const data = await response.json();
+            document.getElementById('suggestions').textContent = JSON.stringify(data, null, 2);
+        });
+    </script>
+</body>
+</html>
