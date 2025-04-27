@@ -1,54 +1,60 @@
-const chat   = document.getElementById("chat");
-const prompt = document.getElementById("prompt");
-let   history = [];
+const chat = document.getElementById("chat");
+const form = document.getElementById("ask");
+const promptEl = document.getElementById("prompt");
+const sendBtn = form.querySelector("button");
 
-prompt.addEventListener("keydown", async e => {
-  if (e.key !== "Enter") return;
-  const q = prompt.value.trim();
-  if (!q) return;
-  prompt.value = "";
-  push("user", q);
-  history.push({ role:"user", content:q });
+let history = [];
 
-  const resp = await fetch("/api/chat", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ messages: history })
-  });
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = promptEl.value.trim();
+    if (!q) return;
+    promptEl.value = "";
+    push("user", q);
+    history.push({ role: "user", content: q });
+    sendBtn.disabled = true;
 
-  let assistantMsg = { role:"assistant", content:"" };
-  history.push(assistantMsg);
-  push("assistant", "");                 // placeholder
+    const resp = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: history }),
+    });
 
-  const reader  = resp.body.getReader();
-  const decoder = new TextDecoder("utf-8");
+    let assistantMsg = { role: "assistant", content: "" };
+    history.push(assistantMsg);
+    const placeholder = push("assistant", "");
 
-  while (true) {
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+
+    while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    decoder.decode(value).trim().split("\n\n").forEach(line => {
-      if (!line) return;
-      const json   = JSON.parse(line);
-      const token  = json.choices?.[0]?.delta?.content;
-      if (token) {
+    const chunk = decoder.decode(value);
+    chunk.trim().split("\n\n").forEach((line) => {
+        if (!line.startsWith("data:")) return;
+        const json = JSON.parse(line.replace(/^data:\s*/, ""));
+        const token = json.token;
+        if (token) {
         assistantMsg.content += token;
-        updateLast(token);
-      }
+        placeholder.textContent = assistantMsg.content;
+        scrollBottom();
+        }
     });
-  }
+    }
+    sendBtn.disabled = false;
+    scrollBottom();
 });
 
 function push(role, text) {
-  const div = document.createElement("div");
-  div.className = role;
-  div.textContent = (role === "user" ? "You: " : "GPT: ") + text;
-  chat.appendChild(div);
-  window.scrollTo(0, document.body.scrollHeight);
+    const div = document.createElement("div");
+    div.className = `bubble ${role}`;
+    div.textContent = text;
+    chat.appendChild(div);
+    scrollBottom();
+    return div;
 }
 
-function updateLast(extra) {
-  const nodes = chat.getElementsByClassName("assistant");
-  const last  = nodes[nodes.length - 1];
-  last.textContent += extra;
-  window.scrollTo(0, document.body.scrollHeight);
+function scrollBottom() {
+    chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
 }
