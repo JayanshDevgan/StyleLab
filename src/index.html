@@ -3,21 +3,63 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gemini Chat Demo</title>
+  <title>Gemini Style Questionnaire</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles/style.css" />
-
 </head>
 <body>
-  <main id="chat"></main>
-
+  <h1>Style Questionnaire</h1>
   <form id="ask" autocomplete="off">
-    <input id="prompt" placeholder="Ask Gemini…" />
-    <button type="submit">Send</button>
+    <h2>1. What is your primary hair texture?</h2>
+    <select name="hair_texture" required>
+      <option value="" disabled selected>Select hair texture</option>
+      <option selected>Wavy</option>
+      <option>Straight</option>
+      <option>Curly</option>
+      <option>Coily</option>
+    </select>
+
+    <h2>2. How would you describe your face shape?</h2>
+    <select name="face_shape" required>
+      <option value="" disabled selected>Select face shape</option>
+      <option selected>Square</option>
+      <option>Round</option>
+      <option>Oval</option>
+      <option>Heart</option>
+    </select>
+
+    <h2>3. What is your typical lifestyle or profession?</h2>
+    <select name="lifestyle" required>
+      <option value="" disabled selected>Select lifestyle </option>
+      <option selected>Professional/Bussiness</option>
+      <option>Casual</option>
+      <option>Sporty</option>
+      <option>Creative</option>
+    </select>
+
+    <h2>4. Preferred level of beard maintenance:</h2>
+    <select name="beard_style" required>
+      <option value="" disabled selected>Select beard style</option>
+      <option selected>Short, neatly trimmed</option>
+      <option>Clean Shaven</option>
+      <option>Long Beard</option>
+      <option>Medium Beard</option>
+    </select>
+
+    <h2>5. Personal style when it comes to accessories:</h2>
+    <select name="accessories" required>
+      <option value="" disabled selected>Select accessories style</option>
+      <option selected>Minimalist and classic</option>
+      <option>Trendy and Bold</option>
+      <option>Sporty</option>
+      <option>Vintage</option>
+    </select>
+
+    <input type="submit" value="Submit" />
   </form>
 
-  <script src="Scripts/main.js"></script>
+  <script src="Scripts/main_new.js"></script>
 </body>
 </html>
