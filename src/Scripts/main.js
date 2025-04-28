@@ -1,137 +1,161 @@
-/* Scripts/main.js  —  Style questionnaire front-end
-   1. Collect dropdown answers.
-   2. Stream Gemini response (with [IMG: …] tokens).
-   3. Replace tokens with real Unsplash photos.
-   4. Remove any broken images. */
+const form = document.getElementById("ask");
+const resultBox = makeResultBox();
 
-   const form = document.getElementById("ask");
-   const resultBox = document.getElementById("result") || createResultBox();
-   const UNSPLASH_KEY = "KO-iAzyQW_GmHvs0TP150r6F2oggGGMnHLg4Zd_3N4c";      //  >>> put your key here <<<
-   
-   function createResultBox() {
-       const div = document.createElement("div");
-       div.id = "result";
-       document.body.appendChild(div);
-       return div;
-   }
-   
-   function qs(name) {
-       const sel = form.querySelector(`select[name="${name}"]`);
-       return sel ? sel.value || null : null;
-   }
-   
-   
-   form.addEventListener("submit", async (e) => {
-       e.preventDefault();
-   
-       const answers = {
-           hair_texture: qs("hair_texture"),
-           face_shape: qs("face_shape"),
-           lifestyle: qs("lifestyle"),
-           beard: qs("beard_style"),
-           accessory_style: qs("accessories"),
-       };
-   
-       if (Object.values(answers).includes(null)) {
-           alert("Please choose an option for every question.");
-           return;
-       }
-   
-       // --- Prompt: ask Gemini for HTML with [IMG: keyword] tokens ------------
-       const prompt = `
-      You are an expert men's stylist AI.
-   
-   Return ONLY an HTML fragment (no markdown, no code fences).  
-   Allowed tags: <h3>, <ul>, <li>, <b>, <a>.  
-   ★ For the illustration, output **exactly one token** in this form:  [IMG: keyword phrase]  
-       • The keyword phrase should be concise (4-8 words) and describe a MALE model who simultaneously shows:  
-           Gender: male
-          Hair texture: ${answers.hair_texture}  
-          Face shape: ${answers.face_shape}  
-          Lifestyle / profession style: ${answers.lifestyle}  
-          Beard style / maintenance: ${answers.beard}  
-          Accessory style: ${answers.accessory_style}  
-       • Do NOT output any <img> tags or URLs. My script will fetch the image using that keyword.
-       • Also add a warning the image not be perfect, but it should be close.
-       • And always give image of a man. so add first keyword man
-   
-   Output structure:
-   
-   <h3>Style Summary: …</h3>
-   <ul>
-     <li><b>Hair:</b> …</li>
-     <li><b>Beard:</b> …</li>
-     <li><b>Outfit:</b> …</li>
-     <li><b>Accessory:</b> …</li>
-   </ul>
-   
-   [IMG: keyword that covers all above traits]
-   
-   <h3>Inspiration Link</h3>
-   <ul>
-     <li><a href="https://example.com/gallery" target="_blank">More ideas</a></li>
-   </ul>
-      `;
-   
-       resultBox.innerHTML = "<em>Loading…</em>";
-   
-       // --- Stream Gemini -----------------------------------------------------
-       const resp = await fetch("/api/chat", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
-       });
-   
-       const reader = resp.body.getReader();
-       const dec = new TextDecoder();
-       let html = "";
-   
-       while (true) {
-           const { done, value } = await reader.read();
-           if (done) break;
-           dec.decode(value).trim().split("\n\n").forEach(line => {
-               if (!line.startsWith("data:")) return;
-               const tok = JSON.parse(line.replace(/^data:\s*/, "")).token;
-               if (tok) {
-                   html += tok;
-                   resultBox.innerHTML = html;         // live preview (tokens still present)
-               }
-           });
-       }
-       // --- Replace [IMG: keyword] tokens with real Unsplash URLs ------------
-       await replaceTokensWithUnsplash(resultBox);
-       // --- Hide any <img> that still fails ----------------------------------
-       resultBox.querySelectorAll("img").forEach(img => {
-           img.onerror = () => img.remove();
-       });
-   });
-   
-   /* ---------------------------------------------------------------------- */
-   
-   async function replaceTokensWithUnsplash(container) {
-       const tokenRegex = /\[IMG:\s*([^\]]+)]/i;
-       let match;
-       // loop until no more tokens
-       while ((match = container.innerHTML.match(tokenRegex))) {
-           const keyword = match[1].trim();
-           const url = await fetchUnsplash(keyword);
-           const imgTag = url
-               ? `<img src="${url}" alt="${keyword}" width="280">`
-               : "";                                       // if fetch failed, omit image
-           container.innerHTML = container.innerHTML.replace(match[0], imgTag);
-           console.log("Replaced token:", match[0], "with URL:", url);
-       }
-   }
-   
-   async function fetchUnsplash(query) {
-       try {
-           const r = await fetch(
-               `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=portrait&client_id=${UNSPLASH_KEY}`
-           );
-           if (!r.ok) return null;
-           const { urls } = await r.json();
-           return urls && urls.small;
-       } catch {
-           return null;
-       }
-   }
+const imgBox = document.createElement("div");
+imgBox.id = "img";
+resultBox.appendChild(imgBox);
+
+function makeResultBox() {
+    const div = document.createElement("div");
+    div.id = "result";
+    document.body.appendChild(div);
+    return div;
+}
+
+const v = (name) => form.querySelector(`select[name="${name}"]`).value;
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // --- 1. Gather answers -------------------------------------------------
+    const answers = {
+        hair_texture: v("hair_texture"),
+        face_shape: v("face_shape"),
+        lifestyle: v("lifestyle"),
+        beard: v("beard_style"),
+        accessory_style: v("accessories"),
+    };
+
+    if (Object.values(answers).includes("")) {
+        alert("Please complete every dropdown before submitting.");
+        return;
+    }
+
+
+
+//     const chatPrompt = `
+// SYSTEM
+// You are a professional men's stylist AI.
+
+// USER
+// Rules (follow strictly):
+
+// 1. Output one HTML fragment—no markdown, no \`\`\`html.
+// 3. Use <b> for bold text.
+// 4. Small answer
+// 5. Fill the link and keep target attribute.
+
+// TEMPLATE
+// <h3>Style Summary: [[HEADLINE]]</h3>
+
+// In list format, describe the following:
+// <b>Face:</b>${answers.face_shape}
+// <b>Hair:</b>${answers.hair_texture}
+// <b>Beard:</b>${answers.beard}
+// <b>lifestyle:</b>${answers.lifestyle}
+// <b>Accessory:</b>${answers.accessory_style}
+
+// normal:
+// <h3>Inspiration Link</h3>
+// <a href="link">More ideas</a>
+
+// <p><b>Note:</b> Image may not match all details perfectly.</p>
+
+// Write it
+// `;
+
+    const chatSummary = `
+<h3>Selected Style Profile</h3>
+
+<ul>
+  <li><b>Hair texture:</b> ${answers.hair_texture}</li>
+  <li><b>Face shape:</b> ${answers.face_shape}</li>
+  <li><b>Lifestyle / profession:</b> ${answers.lifestyle}</li>
+  <li><b>Beard style:</b> ${answers.beard}</li>
+  <li><b>Accessory preference:</b> ${answers.accessory_style}</li>
+</ul>
+
+<p><b>Note:</b> Image may not match all details perfectly.</p>
+`;
+
+    // --- 2. Call your /api/chat endpoint ---------------------------------
+    // resultBox.innerHTML = "<em>Generating summary…</em>";
+    // try {
+    //     const r = await fetch("/api/chat", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ messages: [{ role: "user", content: chatSummary }] })
+    //     });
+    //     const reader = r.body.getReader();
+    //     const decoder = new TextDecoder();
+
+    //     resultBox.innerHTML = "";            // clear previous content
+    //     while (true) {
+    //         const { done, value } = await reader.read();
+    //         if (done) break;
+
+    //         const chunk = decoder.decode(value);
+    //         // SSE frames separated by double line breaks
+    //         chunk.trim().split("\n\n").forEach(line => {
+    //             if (!line.startsWith("data:")) return;
+    //             const token = JSON.parse(line.replace(/^data:\s*/, "")).token;
+    //             if (token) {
+    //                 resultBox.innerHTML += token;
+    //                 resultBox.scrollTop = resultBox.scrollHeight; // scroll to bottom
+    //             }
+    //         });
+    //     }
+    //     console.log(resultBox.innerHTML)
+    // } catch (err) {
+    //     console.error(err);
+    //     resultBox.innerHTML = "<p><em>Sorry, summary generation failed.</em></p>";
+    //     return;
+    // }
+
+    const imgPrompt = `A confident male model with ${answers.hair} hair, \
+                    ${answers.face} face, ${answers.beard.toLowerCase()} beard, dressed in a \
+                    ${answers.lifestyle.toLowerCase()} outfit, wearing ${answers.accessory}, \
+                    full-body, studio lighting, high resolution`;
+
+    resultBox.innerHTML += chatSummary;
+    resultBox.classList.add("show");
+
+    const ph = document.createElement("div");
+    ph.className = "img-placeholder";
+    resultBox.appendChild(ph);
+
+
+    // --- 3. Call your /api/image endpoint ---------------------------------
+    try {
+        const r = await fetch("/api/image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: imgPrompt })
+        });
+        const { url } = await r.json();
+
+        if (!url) throw new Error("No URL returned");
+
+        const img = new Image();
+        img.src = url;
+        img.alt = "Generated style look";
+        img.onload = () => {
+            // replace loading text with the image
+            resultBox.removeChild(ph);
+            // resultBox.removeChild(resultBox.querySelector("em"));
+            // resultBox.removeChild(resultBox.querySelector("br"));
+            // resultBox.removeChild(resultBox.querySelector("br"));
+            resultBox.appendChild(img);
+            resultBox.scrollTop = resultBox.scrollHeight; // scroll to bottom
+            
+        };
+        img.onerror = () => {
+            resultBox.removeChild(ph);
+            resultBox.innerHTML = "<p><em>Sorry, image loading failed.</em></p>";
+        };
+    } catch (err) {
+        console.error(err);
+        resultBox.innerHTML = "" +
+            "<p><em>Sorry, image generation failed.</em></p>";
+    }
+});
