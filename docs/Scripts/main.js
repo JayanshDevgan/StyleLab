@@ -151,11 +151,11 @@ form.addEventListener("submit", async (e) => {
         };
         img.onerror = () => {
             resultBox.removeChild(ph);
-            resultBox.innerHTML = "<p><em>Sorry, image loading failed.</em></p>";
+            resultBox.innerHTML += "<p><em>Sorry, image loading failed.</em></p>";
         };
     } catch (err) {
         console.error(err);
-        resultBox.innerHTML = "" +
+        resultBox.innerHTML +=
             "<p><em>Sorry, image generation failed.</em></p>";
     }
 });

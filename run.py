@@ -10,5 +10,5 @@ def run_command(command):
 
 if __name__ == "__main__":
     command = "cd /Users/mandeepsingh/MyStuff/Programming/StyleLab\n"
-    command += "node src/Scripts/server.js"
+    command += "node docs/Scripts/server.js"
     run_command(command)
